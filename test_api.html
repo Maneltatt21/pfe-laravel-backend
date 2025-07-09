@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Management API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .button { background: #007cba; color: white; padding: 10px 15px; border: none; border-radius: 3px; cursor: pointer; margin: 5px; }
+        .button:hover { background: #005a87; }
+        .response { background: #f5f5f5; padding: 10px; border-radius: 3px; margin-top: 10px; white-space: pre-wrap; }
+        .input { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 3px; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Vehicle Management API Test Interface</h1>
+        
+        <div class="section">
+            <h2>Authentication</h2>
+            <div>
+                <h3>Login</h3>
+                <input type="email" id="loginEmail" class="input" placeholder="Email" value="admin@example.com">
+                <input type="password" id="loginPassword" class="input" placeholder="Password" value="password">
+                <button class="button" onclick="login()">Login</button>
+            </div>
+            <div id="authResponse" class="response"></div>
+        </div>
+
+        <div class="section">
+            <h2>Vehicles</h2>
+            <button class="button" onclick="getVehicles()">Get All Vehicles</button>
+            <button class="button" onclick="createVehicle()">Create Test Vehicle</button>
+            <div id="vehiclesResponse" class="response"></div>
+        </div>
+
+        <div class="section">
+            <h2>Users</h2>
+            <button class="button" onclick="getUsers()">Get All Users</button>
+            <button class="button" onclick="getCurrentUser()">Get Current User</button>
+            <div id="usersResponse" class="response"></div>
+        </div>
+
+        <div class="section">
+            <h2>Vehicle Exchanges</h2>
+            <button class="button" onclick="getExchanges()">Get All Exchanges</button>
+            <div id="exchangesResponse" class="response"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000/api/v1';
+        let authToken = '';
+
+        async function apiCall(endpoint, method = 'GET', data = null) {
+            const headers = {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            };
+
+            if (authToken) {
+                headers['Authorization'] = `Bearer ${authToken}`;
+            }
+
+            const config = {
+                method,
+                headers
+            };
+
+            if (data) {
+                config.body = JSON.stringify(data);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, config);
+                const result = await response.json();
+                return { status: response.status, data: result };
+            } catch (error) {
+                return { status: 500, data: { message: error.message } };
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            const result = await apiCall('/login', 'POST', { email, password });
+            
+            if (result.status === 200) {
+                authToken = result.data.token;
+                document.getElementById('authResponse').innerHTML = `<span class="success">Login successful!</span>\nToken: ${authToken.substring(0, 20)}...`;
+            } else {
+                document.getElementById('authResponse').innerHTML = `<span class="error">Login failed:</span>\n${JSON.stringify(result.data, null, 2)}`;
+            }
+        }
+
+        async function getVehicles() {
+            const result = await apiCall('/vehicles');
+            document.getElementById('vehiclesResponse').innerHTML = JSON.stringify(result.data, null, 2);
+        }
+
+        async function createVehicle() {
+            const vehicleData = {
+                registration_number: `TEST-${Math.floor(Math.random() * 1000)}`,
+                model: 'Test Vehicle',
+                year: 2023
+            };
+            
+            const result = await apiCall('/vehicles', 'POST', vehicleData);
+            document.getElementById('vehiclesResponse').innerHTML = JSON.stringify(result.data, null, 2);
+        }
+
+        async function getUsers() {
+            const result = await apiCall('/users');
+            document.getElementById('usersResponse').innerHTML = JSON.stringify(result.data, null, 2);
+        }
+
+        async function getCurrentUser() {
+            const result = await apiCall('/user');
+            document.getElementById('usersResponse').innerHTML = JSON.stringify(result.data, null, 2);
+        }
+
+        async function getExchanges() {
+            const result = await apiCall('/exchanges');
+            document.getElementById('exchangesResponse').innerHTML = JSON.stringify(result.data, null, 2);
+        }
+    </script>
+</body>
+</html>
