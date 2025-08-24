@@ -82,7 +82,7 @@ class DocumentController extends Controller
             content: new OA\MediaType(
                 mediaType: "multipart/form-data",
                 schema: new OA\Schema(
-                    required: ["type", "expiration_date"],
+                    required: ["type", "expiration_date", "file"],
                     properties: [
                         new OA\Property(
                             property: "type",

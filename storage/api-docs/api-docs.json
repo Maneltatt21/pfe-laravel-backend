@@ -353,7 +353,8 @@
                             "schema": {
                                 "required": [
                                     "type",
-                                    "expiration_date"
+                                    "expiration_date",
+                                    "file"
                                 ],
                                 "properties": {
                                     "type": {
