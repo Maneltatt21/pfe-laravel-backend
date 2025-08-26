@@ -158,53 +158,53 @@ class UserController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, User $user): JsonResponse
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
-            'password' => 'nullable|string|min:8|confirmed',
-            'role' => 'required|in:admin,chauffeur',
-            'vehicle_id' => 'nullable|exists:vehicles,id',
-        ]);
+    // public function update(Request $request, User $user): JsonResponse
+    // {
+    //     $request->validate([
+    //         'name' => 'required|string|max:255',
+    //         'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+    //         'password' => 'nullable|string|min:8|confirmed',
+    //         'role' => 'required|in:admin,chauffeur',
+    //         'vehicle_id' => 'nullable|exists:vehicles,id',
+    //     ]);
 
-        $updateData = [
-            'name' => $request->name,
-            'email' => $request->email,
-            'role' => $request->role,
-            'vehicle_id' => $request->vehicle_id,
-        ];
+    //     $updateData = [
+    //         'name' => $request->name,
+    //         'email' => $request->email,
+    //         'role' => $request->role,
+    //         'vehicle_id' => $request->vehicle_id,
+    //     ];
 
-        if ($request->filled('password')) {
-            $updateData['password'] = Hash::make($request->password);
-        }
+    //     if ($request->filled('password')) {
+    //         $updateData['password'] = Hash::make($request->password);
+    //     }
 
-        $user->update($updateData);
+    //     $user->update($updateData);
 
-        return response()->json([
-            'message' => 'User updated successfully',
-            'user' => $user->load('vehicle'),
-        ]);
-    }
+    //     return response()->json([
+    //         'message' => 'User updated successfully',
+    //         'user' => $user->load('vehicle'),
+    //     ]);
+    // }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(User $user): JsonResponse
-    {
-        // Prevent deleting the last admin
-        if ($user->isAdmin() && User::where('role', 'admin')->count() <= 1) {
-            return response()->json([
-                'message' => 'Cannot delete the last admin user',
-            ], 422);
-        }
+    // public function destroy(User $user): JsonResponse
+    // {
+    //     // Prevent deleting the last admin
+    //     if ($user->isAdmin() && User::where('role', 'admin')->count() <= 1) {
+    //         return response()->json([
+    //             'message' => 'Cannot delete the last admin user',
+    //         ], 422);
+    //     }
 
-        $user->delete();
+    //     $user->delete();
 
-        return response()->json([
-            'message' => 'User deleted successfully',
-        ]);
-    }
+    //     return response()->json([
+    //         'message' => 'User deleted successfully',
+    //     ]);
+    // }
 
     /**
      * Assign a vehicle to a user.
@@ -281,6 +281,172 @@ class UserController extends Controller
 
         return response()->json([
             'message' => 'Vehicle assigned successfully',
+            'user' => $user->load('vehicle'),
+        ]);
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    #[OA\Delete(
+        path: "/users/{id}",
+        summary: "Delete a user",
+        description: "Delete the specified user (Admin only). Deleting the last admin is not allowed.",
+        security: [["bearerAuth" => []]],
+        tags: ["Users"],
+        parameters: [
+            new OA\Parameter(
+                name: "id",
+                in: "path",
+                description: "User ID",
+                required: true,
+                schema: new OA\Schema(type: "integer")
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "User deleted successfully",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "message", type: "string", example: "User deleted successfully")
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 403, description: "Forbidden - Admin only"),
+            new OA\Response(response: 404, description: "User not found"),
+            new OA\Response(
+                response: 422,
+                description: "Cannot delete the last admin user",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "message", type: "string", example: "Cannot delete the last admin user")
+                    ]
+                )
+            )
+        ]
+    )]
+    public function destroy(User $user): JsonResponse
+    {
+        // Prevent deleting the last admin
+        if ($user->isAdmin() && User::where('role', 'admin')->count() <= 1) {
+            return response()->json([
+                'message' => 'Cannot delete the last admin user',
+            ], 422);
+        }
+
+        $user->delete();
+
+        return response()->json([
+            'message' => 'User deleted successfully',
+        ]);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    #[OA\Put(
+        path: "/users/{id}",
+        summary: "Update a user",
+        description: "Update the specified user's data (Admin only). Admin users cannot be modified.",
+        security: [["bearerAuth" => []]],
+        tags: ["Users"],
+        parameters: [
+            new OA\Parameter(
+                name: "id",
+                in: "path",
+                description: "User ID",
+                required: true,
+                schema: new OA\Schema(type: "integer")
+            )
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["name", "email"],
+                properties: [
+                    new OA\Property(property: "name", type: "string", example: "Jane Doe"),
+                    new OA\Property(property: "email", type: "string", format: "email", example: "jane@example.com"),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "User updated successfully",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "message", type: "string", example: "User updated successfully"),
+                        new OA\Property(property: "user", ref: "#/components/schemas/User")
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 403, description: "Forbidden - Admin only"),
+            new OA\Response(response: 404, description: "User not found"),
+            new OA\Response(response: 422, description: "Validation error OR Admin user cannot be modified")
+        ]
+    )]
+    // public function update(Request $request, User $user): JsonResponse
+    // {
+    //     // Prevent any modification on admin users
+    //     if ($user->role === 'admin') {
+    //         return response()->json([
+    //             'message' => 'Admin users cannot be modified',
+    //         ], 422);
+    //     }
+
+    //     $request->validate([
+    //         'name' => 'required|string|max:255',
+    //         'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+    //         'password' => 'nullable|string|min:8|confirmed',
+    //         'role' => 'required|in:admin,chauffeur',
+    //         'vehicle_id' => 'nullable|exists:vehicles,id',
+    //     ]);
+
+    //     $updateData = [
+    //         'name' => $request->name,
+    //         'email' => $request->email,
+    //         'role' => $request->role,
+    //         'vehicle_id' => $request->vehicle_id,
+    //     ];
+
+    //     if ($request->filled('password')) {
+    //         $updateData['password'] = Hash::make($request->password);
+    //     }
+
+    //     $user->update($updateData);
+
+    //     return response()->json([
+    //         'message' => 'User updated successfully',
+    //         'user' => $user->load('vehicle'),
+    //     ]);
+    // }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, User $user): JsonResponse
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+        ]);
+
+        $updateData = [
+            'name' => $request->name,
+            'email' => $request->email,
+        ];
+
+        if ($request->filled('password')) {
+            $updateData['password'] = Hash::make($request->password);
+        }
+
+        $user->update($updateData);
+
+        return response()->json([
+            'message' => 'User updated successfully',
             'user' => $user->load('vehicle'),
         ]);
     }

@@ -252,7 +252,7 @@ class VehicleController extends Controller
      */
     #[OA\Delete(
         path: "/vehicles/{id}",
-        summary: "Archive vehicle",
+        summary: "Delete vehicle",
         description: "Archive a vehicle (Admin only)",
         security: [["bearerAuth" => []]],
         tags: ["Vehicles"],
